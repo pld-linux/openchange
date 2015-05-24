@@ -1,0 +1,47 @@
+--- openchange-openchange-2.3-VULCAN/config.mk.in.orig	2015-05-22 23:30:25.141933097 +0200
++++ openchange-openchange-2.3-VULCAN/config.mk.in	2015-05-22 23:30:28.665266286 +0200
+@@ -68,7 +68,7 @@
+ TALLOC_LIBS=@TALLOC_LIBS@
+ 
+ CFLAGS+=$(SAMBA_CFLAGS) $(LDB_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(THREAD_CFLAGS) $(NANOMSG_CFLAGS)
+-LIBS+=$(SAMBA_LIBS) $(LDB_LIBS) $(TALLOC_LIBS) $(THREAD_LIBS)
++LIBS+=$(SAMBA_LIBS) $(LDB_LIBS) $(TALLOC_LIBS) $(THREAD_LIBS) -ltevent-util ${libdir}/samba/libcli-ldap-common-samba4.so ${libdir}/samba/libcliauth-samba4.so ${libdir}/samba/libdcerpc-samba-samba4.so ${libdir}/samba/liberrors-samba4.so ${libdir}/samba/libldbsamba-samba4.so ${libdir}/samba/libndr-samba-samba4.so ${libdir}/samba/libsamba-debug-samba4.so ${libdir}/samba/libsamba-security-samba4.so ${libdir}/samba/libsamdb-common-samba4.so
+ LDFLAGS+=@LDFLAGS@
+ 
+ THREAD_LIBS=@THREAD_LIBS@
+--- openchange-openchange-2.3-VULCAN/Makefile.orig	2015-05-23 19:28:30.857562616 +0200
++++ openchange-openchange-2.3-VULCAN/Makefile	2015-05-23 21:04:14.893988228 +0200
+@@ -368,6 +368,9 @@
+ 	@echo "Linking $@"
+ 	$(CXX) $(DSOOPT) $(CXX11FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,-soname,libmapipp.$(SHLIBEXT).$(LIBMAPIPP_SO_VERSION) -o $@ $^ $(LIBS) 
+ 
++libmapipp.$(SHLIBEXT).$(LIBMAPI_SO_VERSION): libmapipp.$(SHLIBEXT).$(PACKAGE_VERSION)
++	ln -fs $< $@
++
+ libmapixx-installpc:
+ 	@echo "[*] install: libmapi++ pc files"
+ 	$(INSTALL) -d $(DESTDIR)$(libdir)/pkgconfig
+@@ -858,8 +861,7 @@
+ 							mapiproxy/libmapiserver/libmapiserver_oxorule.po	\
+ 							mapiproxy/libmapiserver/libmapiserver_oxcperm.po	\
+ 							mapiproxy/libmapiserver/libmapiserver_oxcdata.po	\
+-							ndr_mapi.po				\
+-							gen_ndr/ndr_exchange.po
++							libmapi.$(SHLIBEXT).$(LIBMAPI_SO_VERSION)
+ 	@echo "Linking $@"
+ 	@$(CC) -o $@ $(DSOOPT) $(LDFLAGS) -Wl,-soname,libmapiserver.$(SHLIBEXT).$(LIBMAPIPROXY_SO_VERSION) $^ $(LIBS)
+ 
+@@ -1885,9 +1888,11 @@
+ 
+ libqtmapi.$(SHLIBEXT).$(PACKAGE_VERSION): 	\
+ 	qt/lib/foldermodel.o			\
+-	qt/lib/messagesmodel.o
++	qt/lib/messagesmodel.o                  \
++	libmapipp.$(SHLIBEXT).$(LIBMAPIPP_SO_VERSION) \
++	libmapi.$(SHLIBEXT).$(LIBMAPIPP_SO_VERSION)
+ 	@echo "Linking $@"
+-	@$(CXX) $(DSOOPT) $(CXX11FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,-soname,libqtmapi.$(SHLIBEXT).$(LIBQTMAPI_SO_VERSION) -o $@ $^ $(LIBS)
++	@$(CXX) $(DSOOPT) $(CXX11FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,-soname,libqtmapi.$(SHLIBEXT).$(LIBQTMAPI_SO_VERSION) -o $@ $^ -lQtGui -lQtCore $(LIBS)
+ 
+ 
+ qt/demo/demoapp: qt/demo/demoapp.o 				\
