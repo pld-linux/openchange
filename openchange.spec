@@ -234,8 +234,14 @@ cp -a libqtmapi.so.*.* libqtmapi.so $RPM_BUILD_ROOT%{_libdir}
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%post	-p /sbin/ldconfig
-%postun	-p /sbin/ldconfig
+%post	libs -p /sbin/ldconfig
+%postun	libs -p /sbin/ldconfig
+
+%post	c++ -p /sbin/ldconfig
+%postun	c++ -p /sbin/ldconfig
+
+%post	libs -p /sbin/ldconfig
+%postun	libs -p /sbin/ldconfig
 
 %files
 %defattr(644,root,root,755)
@@ -295,8 +301,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/libmapi.so.0
 %attr(755,root,root) %{_libdir}/libmapiadmin.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/libmapiadmin.so.0
-%attr(755,root,root) %{_libdir}/libmapipp.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/libmapipp.so.0
 %attr(755,root,root) %{_libdir}/libmapiproxy.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/libmapiproxy.so.0
 %attr(755,root,root) %{_libdir}/libmapiserver.so.*.*
@@ -310,26 +314,34 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_libdir}/libmapi.so
 %attr(755,root,root) %{_libdir}/libmapiadmin.so
-%attr(755,root,root) %{_libdir}/libmapipp.so
 %attr(755,root,root) %{_libdir}/libmapiproxy.so
 %attr(755,root,root) %{_libdir}/libmapiserver.so
 %attr(755,root,root) %{_libdir}/libmapistore.so
 %attr(755,root,root) %{_libdir}/libocpf.so
 %{_includedir}/gen_ndr
 %{_includedir}/libmapi
-%{_includedir}/libmapi++
 %{_includedir}/libmapiadmin
 %{_includedir}/libocpf
 %{_includedir}/mapistore
 %{_includedir}/libmapiproxy.h
 %{_includedir}/libmapiserver.h
 %{_pkgconfigdir}/libmapi.pc
-%{_pkgconfigdir}/libmapi++.pc
 %{_pkgconfigdir}/libmapiadmin.pc
 %{_pkgconfigdir}/libmapiproxy.pc
 %{_pkgconfigdir}/libmapiserver.pc
 %{_pkgconfigdir}/libmapistore.pc
 %{_pkgconfigdir}/libocpf.pc
+
+%files c++
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libmapipp.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/libmapipp.so.0
+
+%files c++-devel
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libmapipp.so
+%{_includedir}/libmapi++
+%{_pkgconfigdir}/libmapi++.pc
 
 %files qt
 %defattr(644,root,root,755)
