@@ -35,7 +35,7 @@ BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.7
 BuildRequires:	rpmbuild(macros) >= 1.219
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.>1)
-BuildRequires:	samba-devel >= 4.2.1
+BuildRequires:	samba-devel >= 4.2.1-0.2
 BuildRequires:	samba-pidl >= 4.2.1
 BuildRequires:	sed >= 4.0
 BuildRequires:	subunit-devel
@@ -87,6 +87,11 @@ Summary:	Header files for OpenChange libraries
 Summary(pl.UTF-8):	Pliki nagłówkowe bibliotek OpenChange
 Group:		Development/Libraries
 Requires:	%{name}-libs = %{version}-%{release}
+Requires:	ldb-devel
+Requires:	samba-devel >= 4.2.1-0.2
+Requires:	talloc-devel
+Requires:	tevent-devel
+Requires:	zlib-devel
 
 %description devel
 Header files for OpenChange libraries.
@@ -98,6 +103,7 @@ Pliki nagłówkowe bibliotek OpenChange.
 Summary:	C++ interface to OpenChange MAPI library
 Summary(pl.UTF-8):	Interfejs C++ do biblioteki OpenChange MAPI
 Group:		Libraries
+Requires:	%{name}-libs = %{version}-%{release}
 
 %description c++
 C++ interface to OpenChange MAPI library.
@@ -110,6 +116,8 @@ Summary:	Header files of C++ interface to OpenChange MAPI library
 Summary(pl.UTF-8):	Pliki nagłówkowe interfejsu C++ do biblioteki OpenChange MAPI
 Group:		Development/Libraries
 Requires:	%{name}-c++ = %{version}-%{release}
+Requires:	%{name}-devel = %{version}-%{release}
+Requires:	libstdc++-devel
 
 %description c++-devel
 Header files of C++ interface to OpenChange MAPI library.
@@ -121,6 +129,9 @@ Pliki nagłówkowe interfejsu C++ do biblioteki OpenChange MAPI.
 Summary:	Qt interface to OpenChange MAPI library
 Summary(pl.UTF-8):	Interfejs Qt do biblioteki OpenChange MAPI
 Group:		Libraries
+Requires:	%{name}-c++ = %{version}-%{release}
+Requires:	QtCore >= 4.3.0
+Requires:	QtGui >= 4.3.0
 
 %description qt
 Qt interface to OpenChange MAPI library.
@@ -133,6 +144,7 @@ Summary:	Header files of Qt interface to OpenChange MAPI library
 Summary(pl.UTF-8):	Pliki nagłówkowe interfejsu Qt do biblioteki OpenChange MAPI
 Group:		Development/Libraries
 Requires:	%{name}-qt = %{version}-%{release}
+Requires:	QtGui-devel >= 4.3.0
 
 %description qt-devel
 Header files of Qt interface to OpenChange MAPI library.
