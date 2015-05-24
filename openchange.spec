@@ -46,9 +46,6 @@ Requires:	%{name}-libs = %{version}-%{release}
 Requires:	python-openchange = %{version}-%{release}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-# libraries use symbols also from samba libs pulled indirectly, from outside %{_libdir}
-#define		filterout_ld	-Wl,--no-copy-dt-needed-entries
-
 %description
 OpenChange is a portable Open Source implementation of Microsoft
 Exchange server and Exchange protocols. It provides a complete
@@ -240,8 +237,8 @@ rm -rf $RPM_BUILD_ROOT
 %post	c++ -p /sbin/ldconfig
 %postun	c++ -p /sbin/ldconfig
 
-%post	libs -p /sbin/ldconfig
-%postun	libs -p /sbin/ldconfig
+%post	qt -p /sbin/ldconfig
+%postun	qt -p /sbin/ldconfig
 
 %files
 %defattr(644,root,root,755)
