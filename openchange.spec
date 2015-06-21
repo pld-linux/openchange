@@ -34,9 +34,9 @@ BuildRequires:	pkgconfig >= 1:0.20
 BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.7
 BuildRequires:	rpmbuild(macros) >= 1.219
-# with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.>1)
-BuildRequires:	samba-devel >= 4.2.1-0.2
-BuildRequires:	samba-pidl >= 4.2.1
+# with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
+BuildRequires:	samba-devel >= 4.2.2
+BuildRequires:	samba-pidl >= 4.2.2
 BuildRequires:	sed >= 4.0
 BuildRequires:	subunit-devel
 BuildRequires:	talloc-devel
@@ -88,7 +88,7 @@ Summary(pl.UTF-8):	Pliki nagłówkowe bibliotek OpenChange
 Group:		Development/Libraries
 Requires:	%{name}-libs = %{version}-%{release}
 Requires:	ldb-devel
-Requires:	samba-devel >= 4.2.1-0.2
+Requires:	samba-devel >= 4.2.2
 Requires:	talloc-devel
 Requires:	tevent-devel
 Requires:	zlib-devel
