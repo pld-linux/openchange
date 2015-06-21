@@ -33,6 +33,7 @@ BuildRequires:	perl-base
 BuildRequires:	pkgconfig >= 1:0.20
 BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.7
+BuildRequires:	python-samba >= 4.2.2
 BuildRequires:	rpmbuild(macros) >= 1.219
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
 BuildRequires:	samba-devel >= 4.2.2
