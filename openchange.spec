@@ -1,15 +1,17 @@
+# TODO
+# - nagios plugin (see it's files section for details)
 #
 # Conditional build:
 %bcond_without	apidocs		# do not build and package API docs
-#
+
+%define	cname	VULCAN
 Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange protocols
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	8
+Release:	9
 License:	GPL v3+
 Group:		Libraries
-%define	cname	VULCAN
 Source0:	https://github.com/openchange/openchange/archive/%{name}-%{version}-%{cname}.tar.gz
 # Source0-md5:	96c13c78c2bcbd7040f7848746284b9f
 Patch0:		%{name}-samba-private.patch
@@ -158,6 +160,9 @@ Pliki nagłówkowe interfejsu Qt do biblioteki OpenChange MAPI.
 Summary:	API documentation for OpenChange libraries
 Summary(pl.UTF-8):	Dokumentacja API bibliotek OpenChange
 Group:		Documentation
+%if "%{_rpmversion}" >= "5"
+BuildArch:	noarch
+%endif
 
 %description apidocs
 API documentation for OpenChange libraries.
@@ -385,6 +390,7 @@ rm -rf $RPM_BUILD_ROOT
 %files -n nagios-plugin-openchange
 %defattr(644,root,root,755)
 # R: perl, openchangeclient
+# FIXME: use /usr/lib/nagios/plugins dir and make package noarch
 %attr(755,root,root) %{_libdir}/nagios/check_exchange
 # default profile database - should be /etc/...
 #%config(noreplace) %verify(not md5 mtime size) %{_libdir}/nagios/plugins/check_exchange.ldb
