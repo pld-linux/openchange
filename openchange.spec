@@ -9,14 +9,17 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	10
+Release:	11
 License:	GPL v3+
 Group:		Libraries
 Source0:	https://github.com/openchange/openchange/archive/%{name}-%{version}-%{cname}.tar.gz
 # Source0-md5:	96c13c78c2bcbd7040f7848746284b9f
-Patch0:		%{name}-samba-private.patch
+Patch0:		disable-mapiproxy.patch
 Patch1:		%{name}-link.patch
 Patch2:		flex2.6.patch
+Patch3:		samba-4.2.patch
+Patch4:		fix-connection-args.patch
+Patch5:		samba-4.4.patch
 URL:		http://www.openchange.org/
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
@@ -200,6 +203,9 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %patch0 -p1
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
 
 # no switch for verbose mode, enable manually :/
 %{__sed} -i -e 's/^	@\(\$(\(PIDL\|CC\|CXX\|MOC\)\)/	\1/' Makefile
@@ -267,44 +273,15 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/exchange2mbox
 %attr(755,root,root) %{_bindir}/mapiprofile
 %attr(755,root,root) %{_bindir}/mapipropsdump
-%attr(755,root,root) %{_bindir}/mapitest
 %attr(755,root,root) %{_bindir}/ocnotify
 %attr(755,root,root) %{_bindir}/openchangeclient
 %attr(755,root,root) %{_bindir}/openchangemapidump
 %attr(755,root,root) %{_bindir}/openchangepfadmin
 %attr(755,root,root) %{_bindir}/rpcextract
 %attr(755,root,root) %{_bindir}/schemaIDGUID
-%attr(755,root,root) %{_sbindir}/openchange_group
-%attr(755,root,root) %{_sbindir}/openchange_migrate
-%attr(755,root,root) %{_sbindir}/openchange_neworganization
-%attr(755,root,root) %{_sbindir}/openchange_newuser
-%attr(755,root,root) %{_sbindir}/openchange_provision
-# XXX: dir specified by dcerpc_server.pc file, should belong to samba or samba-libs
-%dir %{_libdir}/samba/dcerpc_server
-%attr(755,root,root) %{_libdir}/samba/dcerpc_server/dcesrv_asyncemsmdb.so
-%attr(755,root,root) %{_libdir}/samba/dcerpc_server/dcesrv_mapiproxy.so
-%dir %{_libdir}/openchange
-%dir %{_libdir}/openchange/modules
-%dir %{_libdir}/openchange/modules/dcerpc_mapiproxy
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_cache.so
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_downgrade.so
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_dummy.so
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_pack.so
-%dir %{_libdir}/openchange/modules/dcerpc_mapiproxy_server
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_ds_rfr.so
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_emsmdb.so
-%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_nsp.so
 %dir %{_datadir}/openchange
-%{_datadir}/openchange/mapitest
 %dir %{_datadir}/openchange/setup
-%{_datadir}/openchange/setup/mapistore
-%{_datadir}/openchange/setup/openchangedb
 %{_datadir}/openchange/setup/profiles
-%dir %{_datadir}/samba/setup/AD
-%{_datadir}/samba/setup/AD/oc_provision_*.ldif
-%{_datadir}/samba/setup/AD/provision_schema_basedn_modify.ldif
-%{_datadir}/samba/setup/AD/update_now.ldif
-%{_datadir}/samba/setup/AD/prefixMap.txt
 %{_mandir}/man1/exchange2ical.1*
 %{_mandir}/man1/exchange2mbox.1*
 %{_mandir}/man1/mapiprofile.1*
@@ -318,12 +295,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/libmapi.so.0
 %attr(755,root,root) %{_libdir}/libmapiadmin.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/libmapiadmin.so.0
-%attr(755,root,root) %{_libdir}/libmapiproxy.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/libmapiproxy.so.0
-%attr(755,root,root) %{_libdir}/libmapiserver.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/libmapiserver.so.0
-%attr(755,root,root) %{_libdir}/libmapistore.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/libmapistore.so.0
 %attr(755,root,root) %{_libdir}/libocpf.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/libocpf.so.0
 
@@ -331,22 +302,13 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_libdir}/libmapi.so
 %attr(755,root,root) %{_libdir}/libmapiadmin.so
-%attr(755,root,root) %{_libdir}/libmapiproxy.so
-%attr(755,root,root) %{_libdir}/libmapiserver.so
-%attr(755,root,root) %{_libdir}/libmapistore.so
 %attr(755,root,root) %{_libdir}/libocpf.so
 %{_includedir}/gen_ndr
 %{_includedir}/libmapi
 %{_includedir}/libmapiadmin
 %{_includedir}/libocpf
-%{_includedir}/mapistore
-%{_includedir}/libmapiproxy.h
-%{_includedir}/libmapiserver.h
 %{_pkgconfigdir}/libmapi.pc
 %{_pkgconfigdir}/libmapiadmin.pc
-%{_pkgconfigdir}/libmapiproxy.pc
-%{_pkgconfigdir}/libmapiserver.pc
-%{_pkgconfigdir}/libmapistore.pc
 %{_pkgconfigdir}/libocpf.pc
 
 %files c++
@@ -381,11 +343,6 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{py_sitedir}/openchange
 %attr(755,root,root) %{py_sitedir}/openchange/mapi.so
 %attr(755,root,root) %{py_sitedir}/openchange/mapistore.so
-%{py_sitedir}/openchange/*.py[co]
-%{py_sitedir}/openchange/migration
-%{py_sitedir}/openchange/tests
-%{py_sitedir}/openchange/utils
-%{py_sitedir}/openchange/web
 
 %files -n nagios-plugin-openchange
 %defattr(644,root,root,755)

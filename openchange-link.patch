@@ -5,7 +5,7 @@
  
  CFLAGS+=$(SAMBA_CFLAGS) $(LDB_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(THREAD_CFLAGS) $(NANOMSG_CFLAGS)
 -LIBS+=$(SAMBA_LIBS) $(LDB_LIBS) $(TALLOC_LIBS) $(THREAD_LIBS)
-+LIBS+=$(SAMBA_LIBS) $(LDB_LIBS) $(TALLOC_LIBS) $(THREAD_LIBS) -ltevent-util ${libdir}/samba/libcli-ldap-common-samba4.so ${libdir}/samba/libcliauth-samba4.so ${libdir}/samba/libdcerpc-samba-samba4.so ${libdir}/samba/liberrors-samba4.so ${libdir}/samba/libldbsamba-samba4.so ${libdir}/samba/libndr-samba-samba4.so ${libdir}/samba/libsamba-debug-samba4.so ${libdir}/samba/libsamba-security-samba4.so ${libdir}/samba/libsamdb-common-samba4.so
++LIBS+=$(SAMBA_LIBS) $(LDB_LIBS) $(TALLOC_LIBS) $(THREAD_LIBS) -ltevent-util -lsamba-errors ${libdir}/samba/libcli-ldap-common-samba4.so ${libdir}/samba/libcliauth-samba4.so ${libdir}/samba/libdcerpc-samba-samba4.so ${libdir}/samba/libldbsamba-samba4.so ${libdir}/samba/libndr-samba-samba4.so ${libdir}/samba/libsamba-debug-samba4.so ${libdir}/samba/libsamba-security-samba4.so ${libdir}/samba/libsamdb-common-samba4.so
  LDFLAGS+=@LDFLAGS@
  
  THREAD_LIBS=@THREAD_LIBS@
