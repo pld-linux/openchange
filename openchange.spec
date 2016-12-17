@@ -10,7 +10,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	12
+Release:	13
 License:	GPL v3+
 Group:		Libraries
 Source0:	https://github.com/openchange/openchange/archive/%{name}-%{version}-%{cname}.tar.gz
@@ -53,7 +53,7 @@ BuildRequires:	talloc-devel
 BuildRequires:	tdb-devel
 BuildRequires:	zlib-devel
 Requires:	%{name}-libs = %{version}-%{release}
-Requires:	python-openchange = %{version}-%{release}
+%{?with_python:Requires:	python-openchange = %{version}-%{release}}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
