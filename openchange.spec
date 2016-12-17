@@ -3,13 +3,14 @@
 #
 # Conditional build:
 %bcond_without	apidocs		# do not build and package API docs
+%bcond_with	python		# build python package (requires disabled mapiproxy)
 
 %define	cname	VULCAN
 Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange protocols
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	11
+Release:	12
 License:	GPL v3+
 Group:		Libraries
 Source0:	https://github.com/openchange/openchange/archive/%{name}-%{version}-%{cname}.tar.gz
@@ -38,8 +39,10 @@ BuildRequires:	nanomsg-devel >= 0.5
 BuildRequires:	perl-base
 BuildRequires:	pkgconfig >= 1:0.20
 BuildRequires:	popt-devel
+%if %{with python}
 BuildRequires:	python-devel >= 1:2.7
 BuildRequires:	python-samba >= 4.2.2
+%endif
 BuildRequires:	rpmbuild(macros) >= 1.219
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
 BuildRequires:	samba-devel >= 4.2.2
@@ -217,7 +220,7 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %configure \
 	--datadir=%{_datadir}/openchange \
 	--enable-openchange-qt4 \
-	--enable-pyopenchange \
+	%{?with_python:--enable-pyopenchange} \
 	--with-modulesdir=%{_libdir}/openchange/modules
 %{__make}
 
@@ -273,7 +276,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/exchange2mbox
 %attr(755,root,root) %{_bindir}/mapiprofile
 %attr(755,root,root) %{_bindir}/mapipropsdump
-%attr(755,root,root) %{_bindir}/ocnotify
+# requires disabled libmapiproxy
+#%attr(755,root,root) %{_bindir}/ocnotify
 %attr(755,root,root) %{_bindir}/openchangeclient
 %attr(755,root,root) %{_bindir}/openchangemapidump
 %attr(755,root,root) %{_bindir}/openchangepfadmin
@@ -338,11 +342,13 @@ rm -rf $RPM_BUILD_ROOT
 %doc apidocs/html/*
 %endif
 
+%if %{with python}
 %files -n python-openchange
 %defattr(644,root,root,755)
 %dir %{py_sitedir}/openchange
 %attr(755,root,root) %{py_sitedir}/openchange/mapi.so
 %attr(755,root,root) %{py_sitedir}/openchange/mapistore.so
+%endif
 
 %files -n nagios-plugin-openchange
 %defattr(644,root,root,755)
