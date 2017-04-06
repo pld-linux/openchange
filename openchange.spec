@@ -3,6 +3,8 @@
 #
 # Conditional build:
 %bcond_without	apidocs		# do not build and package API docs
+%bcond_with	mapiproxy	# mapiproxy suite (disabled with Samba 4.4+)
+%bcond_with	mapitest	# mapitest utility (disabled with Samba 4.4+)
 %bcond_with	python		# build python package (requires disabled mapiproxy)
 
 %define	cname	VULCAN
@@ -250,6 +252,13 @@ cp -a libqtmapi.so.*.* libqtmapi.so $RPM_BUILD_ROOT%{_libdir}
 
 # tests
 %{__rm} $RPM_BUILD_ROOT%{_bindir}/{check_fasttransfer,openchange-testsuite,test_asyncnotif}
+%if %{without mapiproxy}
+# requires mapiproxy
+%{__rm} $RPM_BUILD_ROOT%{_bindir}/ocnotify
+%endif
+%if %{without mapitest}
+%{__rm} $RPM_BUILD_ROOT%{_mandir}/man1/mapitest.1
+%endif
 
 /sbin/ldconfig -n $RPM_BUILD_ROOT%{_libdir}
 
@@ -276,8 +285,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/exchange2mbox
 %attr(755,root,root) %{_bindir}/mapiprofile
 %attr(755,root,root) %{_bindir}/mapipropsdump
-# requires disabled libmapiproxy
-#%attr(755,root,root) %{_bindir}/ocnotify
 %attr(755,root,root) %{_bindir}/openchangeclient
 %attr(755,root,root) %{_bindir}/openchangemapidump
 %attr(755,root,root) %{_bindir}/openchangepfadmin
@@ -289,9 +296,43 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/exchange2ical.1*
 %{_mandir}/man1/exchange2mbox.1*
 %{_mandir}/man1/mapiprofile.1*
-%{_mandir}/man1/mapitest.1*
 %{_mandir}/man1/openchangeclient.1*
 %{_mandir}/man1/openchangepfadmin.1*
+%if %{with mapiproxy}
+%attr(755,root,root) %{_bindir}/ocnotify
+%attr(755,root,root) %{_sbindir}/openchange_group
+%attr(755,root,root) %{_sbindir}/openchange_migrate
+%attr(755,root,root) %{_sbindir}/openchange_neworganization
+%attr(755,root,root) %{_sbindir}/openchange_newuser
+%attr(755,root,root) %{_sbindir}/openchange_provision
+# XXX: dir specified by dcerpc_server.pc file, should belong to samba or samba-libs
+%dir %{_libdir}/samba/dcerpc_server
+%attr(755,root,root) %{_libdir}/samba/dcerpc_server/dcesrv_asyncemsmdb.so
+%attr(755,root,root) %{_libdir}/samba/dcerpc_server/dcesrv_mapiproxy.so
+%dir %{_libdir}/openchange
+%dir %{_libdir}/openchange/modules
+%dir %{_libdir}/openchange/modules/dcerpc_mapiproxy
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_cache.so
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_downgrade.so
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_dummy.so
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy/mpm_pack.so
+%dir %{_libdir}/openchange/modules/dcerpc_mapiproxy_server
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_ds_rfr.so
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_emsmdb.so
+%attr(755,root,root) %{_libdir}/openchange/modules/dcerpc_mapiproxy_server/exchange_nsp.so
+%{_datadir}/openchange/setup/mapistore
+%{_datadir}/openchange/setup/openchangedb
+%dir %{_datadir}/samba/setup/AD
+%{_datadir}/samba/setup/AD/oc_provision_*.ldif
+%{_datadir}/samba/setup/AD/provision_schema_basedn_modify.ldif
+%{_datadir}/samba/setup/AD/update_now.ldif
+%{_datadir}/samba/setup/AD/prefixMap.txt
+%endif
+%if %{with mapitest}
+%attr(755,root,root) %{_bindir}/mapitest
+%{_datadir}/openchange/mapitest
+%{_mandir}/man1/mapitest.1*
+%endif
 
 %files libs
 %defattr(644,root,root,755)
@@ -301,6 +342,14 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/libmapiadmin.so.0
 %attr(755,root,root) %{_libdir}/libocpf.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/libocpf.so.0
+%if %{with mapiproxy}
+%attr(755,root,root) %{_libdir}/libmapiproxy.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/libmapiproxy.so.0
+%attr(755,root,root) %{_libdir}/libmapiserver.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/libmapiserver.so.0
+%attr(755,root,root) %{_libdir}/libmapistore.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/libmapistore.so.0
+%endif
 
 %files devel
 %defattr(644,root,root,755)
@@ -314,6 +363,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_pkgconfigdir}/libmapi.pc
 %{_pkgconfigdir}/libmapiadmin.pc
 %{_pkgconfigdir}/libocpf.pc
+%if %{with mapiproxy}
+%attr(755,root,root) %{_libdir}/libmapiproxy.so
+%attr(755,root,root) %{_libdir}/libmapiserver.so
+%attr(755,root,root) %{_libdir}/libmapistore.so
+%{_includedir}/mapistore
+%{_includedir}/libmapiproxy.h
+%{_includedir}/libmapiserver.h
+%{_pkgconfigdir}/libmapiproxy.pc
+%{_pkgconfigdir}/libmapiserver.pc
+%{_pkgconfigdir}/libmapistore.pc
+%endif
 
 %files c++
 %defattr(644,root,root,755)
@@ -348,6 +408,13 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{py_sitedir}/openchange
 %attr(755,root,root) %{py_sitedir}/openchange/mapi.so
 %attr(755,root,root) %{py_sitedir}/openchange/mapistore.so
+%if %{with mapiproxy}
+%{py_sitedir}/openchange/*.py[co]
+%{py_sitedir}/openchange/migration
+%{py_sitedir}/openchange/tests
+%{py_sitedir}/openchange/utils
+%{py_sitedir}/openchange/web
+%endif
 %endif
 
 %files -n nagios-plugin-openchange
