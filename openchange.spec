@@ -23,7 +23,7 @@ Patch2:		flex2.6.patch
 Patch3:		samba-4.2.patch
 Patch4:		fix-connection-args.patch
 Patch5:		samba-4.4.patch
-URL:		http://www.openchange.org/
+URL:		https://github.com/openchange
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
 BuildRequires:	autoconf >= 2.57
