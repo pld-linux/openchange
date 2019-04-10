@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	38
+Release:	39
 License:	GPL v3+
 Group:		Libraries
 Source0:	https://github.com/openchange/openchange/archive/%{name}-%{version}-%{cname}.tar.gz
@@ -23,6 +23,8 @@ Patch2:		flex2.6.patch
 Patch3:		samba-4.2.patch
 Patch4:		fix-connection-args.patch
 Patch5:		samba-4.4.patch
+Patch6:		%{name}-covscan.patch
+Patch7:		%{name}-samba-4.10-macros.patch
 URL:		https://github.com/openchange
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
@@ -47,8 +49,9 @@ BuildRequires:	python-samba >= 4.2.2
 %endif
 BuildRequires:	rpmbuild(macros) >= 1.219
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
-BuildRequires:	samba-devel >= 4.2.2
-BuildRequires:	samba-pidl >= 4.2.2
+# samba-4.10-macros patch requires samba-pidl 4.10+
+BuildRequires:	samba-devel >= 4.10
+BuildRequires:	samba-pidl >= 4.10
 BuildRequires:	sed >= 4.0
 BuildRequires:	subunit-devel
 BuildRequires:	talloc-devel
@@ -211,6 +214,8 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
+%patch7 -p1
 
 # no switch for verbose mode, enable manually :/
 %{__sed} -i -e 's/^	@\(\$(\(PIDL\|CC\|CXX\|MOC\)\)/	\1/' Makefile
@@ -251,11 +256,7 @@ cp -p qt/lib/*.h $RPM_BUILD_ROOT%{_includedir}/libqtmapi
 cp -a libqtmapi.so.*.* libqtmapi.so $RPM_BUILD_ROOT%{_libdir}
 
 # tests
-%{__rm} $RPM_BUILD_ROOT%{_bindir}/{check_fasttransfer,openchange-testsuite,test_asyncnotif}
-%if %{without mapiproxy}
-# requires mapiproxy
-%{__rm} $RPM_BUILD_ROOT%{_bindir}/ocnotify
-%endif
+%{__rm} $RPM_BUILD_ROOT%{_bindir}/test_asyncnotif
 %if %{without mapitest}
 %{__rm} $RPM_BUILD_ROOT%{_mandir}/man1/mapitest.1
 %endif

@@ -10,3 +10,32 @@ diff -up openchange-2.1-QUADRANT/configure.ac.OC_RULE_ADD-fix openchange-2.1-QUA
  		mapiproxy=1
  	fi
  fi
+--- openchange-openchange-2.3-VULCAN/configure.ac.orig	2019-04-10 18:45:21.182499045 +0200
++++ openchange-openchange-2.3-VULCAN/configure.ac	2019-04-10 19:39:02.688379984 +0200
+@@ -284,7 +284,7 @@
+ dnl ---------------------------------------------------------------------------
+ dnl Check for check (unittest library)
+ dnl ---------------------------------------------------------------------------
+-PKG_CHECK_MODULES(CHECK, check, [testsuite=1], [AC_MSG_WARN(Conditions unmet for unit testing support)])
++#PKG_CHECK_MODULES(CHECK, check, [testsuite=1], [AC_MSG_WARN(Conditions unmet for unit testing support)])
+ AC_SUBST(CHECK_CFLAGS)
+ AC_SUBST(CHECK_LIBS)
+ OC_RULE_ADD(testsuite, TESTSUITE)
+@@ -689,7 +689,7 @@
+ OC_RULE_ADD(openchangeclient, TOOLS)
+ #OC_RULE_ADD(mapistore_fsocpf, MAPISTORE)
+ OC_RULE_ADD(mapipropsdump, TOOLS)
+-OC_RULE_ADD(ocnotify, TOOLS)
++#OC_RULE_ADD(ocnotify, TOOLS)
+ OC_RULE_ADD(exchange2ical, TOOLS)
+ OC_RULE_ADD(rpcextract, TOOLS)
+ OC_RULE_ADD(openchangepfadmin, TOOLS)
+@@ -698,7 +698,7 @@
+ OC_RULE_ADD(openchangemapidump, TOOLS)
+ OC_RULE_ADD(schemaIDGUID, TOOLS)
+ 
+-OC_RULE_ADD(check_fasttransfer, TOOLS)
++#OC_RULE_ADD(check_fasttransfer, TOOLS)
+ OC_RULE_ADD(test_asyncnotif, TOOLS)
+ 
+ 
