@@ -1,0 +1,90 @@
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_property.c.orig	2019-07-03 05:47:28.580770627 +0200
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_property.c	2019-07-03 17:20:38.425459111 +0200
+@@ -517,7 +517,7 @@
+ 				icalproperty_add_parameter(prop, tzid);
+ 			} else {
+ 				/*Get time from dtstart*/
+-				icaltime.is_utc = 1;
++				icaltime_set_timezone(&icaltime, icaltimezone_get_utc_timezone());
+ 				if (exchange2ical->apptEndWhole){
+ 					dttime = get_icaltime_from_FILETIME_UTC(exchange2ical->apptStartWhole);
+ 					icaltime.hour   = dttime.hour;
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c.orig	2019-07-03 05:47:28.580770627 +0200
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c	2019-07-03 17:25:46.117125535 +0200
+@@ -241,10 +241,9 @@
+ 	tt.minute = tm->tm_min;
+ 	tt.second = tm->tm_sec;
+ 
+-	tt.is_utc      = 0;
+ 	tt.is_date     = 0;
+ 	tt.is_daylight = 0;
+-	tt.zone        = 0;
++	tt.zone        = NULL;
+ 
+ 	return tt;
+ }
+@@ -254,7 +253,7 @@
+ 	struct icaltimetype tt;
+ 	
+ 	tt = get_icaltimetype_from_tm(tm);
+-	tt.is_utc      = 1;
++	icaltime_set_timezone(&tt, icaltimezone_get_utc_timezone());
+ 	
+ 	return tt;
+ }
+@@ -269,12 +268,10 @@
+ 	tt.hour   = 0;
+ 	tt.minute = 0;
+ 	tt.second = 0;
+-	tt.zone   = NULL;
+ 
+-	tt.is_utc      = 1;
+ 	tt.is_date     = 1;
+ 	tt.is_daylight = 0;
+-	tt.zone        = NULL;
++	icaltime_set_timezone(&tt, icaltimezone_get_utc_timezone());
+ 
+ 	return tt;
+ }
+@@ -314,7 +311,6 @@
+ 	tt.minute = tm->tm_min;                                                
+ 	tt.second = tm->tm_sec;
+ 	tt.is_date = 0;
+-	tt.is_utc = 0;
+ 	tt.is_daylight = 0;
+ 	tt.zone = NULL;
+ 
+@@ -340,9 +336,8 @@
+ 	tt.minute = tm->tm_min;                                                
+ 	tt.second = tm->tm_sec;
+ 	tt.is_date = 0;
+-	tt.is_utc = 1;
+ 	tt.is_daylight = 0;
+-	tt.zone = NULL;
++	icaltime_set_timezone(&tt, icaltimezone_get_utc_timezone());
+ 
+ 	return tt;
+ }
+@@ -372,9 +367,8 @@
+ 	tt.minute = 0;                                                
+ 	tt.second = 0;
+ 	tt.is_date = 1;
+-	tt.is_utc = 1;
+ 	tt.is_daylight = 0;
+-	tt.zone = NULL;
++	icaltime_set_timezone(&tt, icaltimezone_get_utc_timezone());
+ 
+ 	return tt;
+ }
+@@ -391,10 +385,9 @@
+ 	tt.minute = 0;
+ 	tt.second = 0;
+ 
+-	tt.is_utc      = 1;
+ 	tt.is_date     = 1;
+ 	tt.is_daylight = 0;
+-	tt.zone        = NULL;
++	icaltime_set_timezone(&tt, icaltimezone_get_utc_timezone());
+ 
+ 	return tt;
+ }
