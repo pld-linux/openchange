@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	46
+Release:	47
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
@@ -63,6 +63,8 @@ BuildRequires:	zlib-devel
 Requires:	%{name}-libs = %{version}-%{release}
 %{?with_python:Requires:	python-openchange = %{version}-%{release}}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
+
+%define		_noautoreq_perl		utils
 
 %description
 OpenChange is a portable Open Source implementation of Microsoft
