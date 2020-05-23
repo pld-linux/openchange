@@ -1,0 +1,11 @@
+--- openchange-openchange-2.3-VULCAN/configure.ac.orig	2020-05-23 08:12:19.965123403 +0200
++++ openchange-openchange-2.3-VULCAN/configure.ac	2020-05-23 08:16:46.680345149 +0200
+@@ -292,7 +292,7 @@
+ dnl ---------------------------------------------------------------------------
+ dnl Check for nanomsg library (server notification)
+ dnl ---------------------------------------------------------------------------
+-PKG_CHECK_MODULES(NANOMSG, libnanomsg, [], [AC_MSG_ERROR(Install nanomsg library >= 0.5)])
++PKG_CHECK_MODULES(NANOMSG, nanomsg, [], [AC_MSG_ERROR(Install nanomsg library >= 0.5)])
+ AC_SUBST(NANOMSG_CFLAGS)
+ AC_SUBST(NANO_LIBS)
+ 

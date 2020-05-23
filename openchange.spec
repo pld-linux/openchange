@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	50
+Release:	51
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
@@ -29,6 +29,7 @@ Patch7:		%{name}-samba-4.10-macros.patch
 Patch8:		%{name}-libical.patch
 Patch9:		samba-4.11.patch
 Patch10:	samba-4.12.patch
+Patch11:	%{name}-nanomsg.patch
 URL:		https://github.com/openchange
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
@@ -43,7 +44,7 @@ BuildRequires:	libmemcached-devel >= 1.0.18
 BuildRequires:	libpcap-devel
 BuildRequires:	libstdc++-devel
 BuildRequires:	mysql-devel
-BuildRequires:	nanomsg-devel >= 0.5
+BuildRequires:	nanomsg-devel >= 1.0.0
 BuildRequires:	perl-base
 BuildRequires:	pkgconfig >= 1:0.20
 BuildRequires:	popt-devel
@@ -225,6 +226,7 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %patch8 -p1
 %patch9 -p1
 %patch10 -p1
+%patch11 -p1
 
 # no switch for verbose mode, enable manually :/
 %{__sed} -i -e 's/^	@\(\$(\(PIDL\|CC\|CXX\|MOC\)\)/	\1/' Makefile
