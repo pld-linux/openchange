@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	51
+Release:	52
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
