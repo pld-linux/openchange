@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	52
+Release:	53
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
@@ -52,7 +52,7 @@ BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.7
 BuildRequires:	python-samba >= 4.2.2
 %endif
-BuildRequires:	rpmbuild(macros) >= 1.219
+BuildRequires:	rpmbuild(macros) >= 1.752
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
 # samba-4.10-macros patch requires samba-pidl 4.10+
 BuildRequires:	samba-devel >= 4.10
@@ -178,9 +178,7 @@ Pliki nagłówkowe interfejsu Qt do biblioteki OpenChange MAPI.
 Summary:	API documentation for OpenChange libraries
 Summary(pl.UTF-8):	Dokumentacja API bibliotek OpenChange
 Group:		Documentation
-%if "%{_rpmversion}" >= "5"
-BuildArch:	noarch
-%endif
+%{?noarchpackage}
 
 %description apidocs
 API documentation for OpenChange libraries.
@@ -235,6 +233,8 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %{__aclocal}
 %{__autoconf}
 %{__autoheader}
+# instead of calling automake (there is no Makefile.am)
+cp -f /usr/share/automake/{compile,missing} .
 %configure \
 	--datadir=%{_datadir}/openchange \
 	--enable-openchange-qt4 \
