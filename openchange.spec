@@ -178,7 +178,7 @@ Pliki nagłówkowe interfejsu Qt do biblioteki OpenChange MAPI.
 Summary:	API documentation for OpenChange libraries
 Summary(pl.UTF-8):	Dokumentacja API bibliotek OpenChange
 Group:		Documentation
-%{?noarchpackage}
+BuildArch:	noarch
 
 %description apidocs
 API documentation for OpenChange libraries.
