@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	53
+Release:	54
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
@@ -52,6 +52,7 @@ BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.7
 BuildRequires:	python-samba >= 4.2.2
 %endif
+BuildRequires:	rpm-build >= 4.6
 BuildRequires:	rpmbuild(macros) >= 1.752
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
 # samba-4.10-macros patch requires samba-pidl 4.10+
