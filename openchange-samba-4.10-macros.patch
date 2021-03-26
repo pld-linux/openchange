@@ -37,12 +37,11 @@ diff -up openchange-openchange-2.3-VULCAN/libmapiadmin/mapiadmin_user.c.samba-4.
  	s.in.user_handle = &mapiadmin_ctx->user_ctx->user_handle;
  	s.in.info = &u;
  	s.in.level = 21;
-diff -up openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h.samba-4.10-macros openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h
---- openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h.samba-4.10-macros	2019-02-14 15:19:53.313769411 +0100
-+++ openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h	2019-02-14 15:19:53.331769410 +0100
-@@ -141,6 +141,11 @@ const char		*libmapi_iface_best_ip(struc
- bool			libmapi_iface_is_local(struct interface *, const char *);
- bool			libmapi_iface_same_net(const char *, const char *, const char *);
+--- openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h.orig	2021-03-26 18:59:00.581217605 +0100
++++ openchange-openchange-2.3-VULCAN/libmapi/libmapi_private.h	2021-03-26 19:01:10.224577853 +0100
+@@ -141,6 +141,11 @@ const char		*iface_best_ip(struct interf
+ bool			iface_is_local(struct interface *, const char *);
+ bool			iface_same_net(const char *, const char *, const char *);
  
 +#define OC_ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
 +#define OC_ZERO_STRUCTP(x) do { if ((x) != NULL) memset((char *)(x), 0, sizeof(*(x))); } while(0)

@@ -38,14 +38,6 @@ diff -up openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c
  
  	tt.year   = tm->tm_year+1900;
  	tt.month  = tm->tm_mon+1;
-@@ -267,6 +267,7 @@ struct icaltimetype get_icaldate_from_tm
- 	tt.hour   = 0;
- 	tt.minute = 0;
- 	tt.second = 0;
-+	tt.zone   = NULL;
- 
- 	tt.is_date     = 1;
- 	tt.is_daylight = 0;
 @@ -292,7 +293,7 @@ struct tm *get_tm_from_FILETIME(const st
  
  struct icaltimetype get_icaltime_from_FILETIME(const struct FILETIME *ft)

@@ -9,9 +9,9 @@
  				if (exchange2ical->apptEndWhole){
  					dttime = get_icaltime_from_FILETIME_UTC(exchange2ical->apptStartWhole);
  					icaltime.hour   = dttime.hour;
---- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c.orig	2019-07-03 05:47:28.580770627 +0200
-+++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c	2019-07-03 17:25:46.117125535 +0200
-@@ -241,10 +241,9 @@
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c.orig	2021-03-26 19:02:03.857346951 +0100
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c	2021-03-26 19:14:41.946490441 +0100
+@@ -241,10 +241,9 @@ struct icaltimetype get_icaltimetype_fro
  	tt.minute = tm->tm_min;
  	tt.second = tm->tm_sec;
  
@@ -23,7 +23,7 @@
  
  	return tt;
  }
-@@ -254,7 +253,7 @@
+@@ -254,7 +253,7 @@ struct icaltimetype get_icaltimetype_fro
  	struct icaltimetype tt;
  	
  	tt = get_icaltimetype_from_tm(tm);
@@ -32,11 +32,9 @@
  	
  	return tt;
  }
-@@ -269,12 +268,10 @@
- 	tt.hour   = 0;
+@@ -270,10 +269,9 @@ struct icaltimetype get_icaldate_from_tm
  	tt.minute = 0;
  	tt.second = 0;
--	tt.zone   = NULL;
  
 -	tt.is_utc      = 1;
  	tt.is_date     = 1;
@@ -46,7 +44,7 @@
  
  	return tt;
  }
-@@ -314,7 +311,6 @@
+@@ -313,7 +311,6 @@ struct icaltimetype get_icaltime_from_FI
  	tt.minute = tm->tm_min;                                                
  	tt.second = tm->tm_sec;
  	tt.is_date = 0;
@@ -54,7 +52,7 @@
  	tt.is_daylight = 0;
  	tt.zone = NULL;
  
-@@ -340,9 +336,8 @@
+@@ -339,9 +336,8 @@ struct icaltimetype get_icaltime_from_FI
  	tt.minute = tm->tm_min;                                                
  	tt.second = tm->tm_sec;
  	tt.is_date = 0;
@@ -65,7 +63,7 @@
  
  	return tt;
  }
-@@ -372,9 +367,8 @@
+@@ -371,9 +367,8 @@ struct icaltimetype get_icaldate_from_FI
  	tt.minute = 0;                                                
  	tt.second = 0;
  	tt.is_date = 1;
@@ -76,7 +74,7 @@
  
  	return tt;
  }
-@@ -391,10 +385,9 @@
+@@ -390,10 +385,9 @@ struct icaltimetype get_icaldate_from_Gl
  	tt.minute = 0;
  	tt.second = 0;
  

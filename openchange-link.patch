@@ -9,11 +9,11 @@
  LDFLAGS+=@LDFLAGS@
  
  THREAD_LIBS=@THREAD_LIBS@
---- openchange-openchange-2.3-VULCAN/Makefile.orig	2015-05-23 19:28:30.857562616 +0200
-+++ openchange-openchange-2.3-VULCAN/Makefile	2015-05-23 21:04:14.893988228 +0200
+--- openchange-openchange-2.3-VULCAN/Makefile.orig	2015-05-16 17:22:04.000000000 +0200
++++ openchange-openchange-2.3-VULCAN/Makefile	2021-03-26 18:48:45.049437480 +0100
 @@ -368,6 +368,9 @@
  	@echo "Linking $@"
- 	$(CXX) $(DSOOPT) $(CXX11FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,-soname,libmapipp.$(SHLIBEXT).$(LIBMAPIPP_SO_VERSION) -o $@ $^ $(LIBS) 
+ 	@$(CXX) $(DSOOPT) $(CXX11FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,-soname,libmapipp.$(SHLIBEXT).$(LIBMAPIPP_SO_VERSION) -o $@ $^ $(LIBS) 
  
 +libmapipp.$(SHLIBEXT).$(LIBMAPI_SO_VERSION): libmapipp.$(SHLIBEXT).$(PACKAGE_VERSION)
 +	ln -fs $< $@
@@ -31,7 +31,7 @@
  	@echo "Linking $@"
  	@$(CC) -o $@ $(DSOOPT) $(LDFLAGS) -Wl,-soname,libmapiserver.$(SHLIBEXT).$(LIBMAPIPROXY_SO_VERSION) $^ $(LIBS)
  
-@@ -1885,9 +1888,11 @@
+@@ -1887,9 +1889,11 @@
  
  libqtmapi.$(SHLIBEXT).$(PACKAGE_VERSION): 	\
  	qt/lib/foldermodel.o			\

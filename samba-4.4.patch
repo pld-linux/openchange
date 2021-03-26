@@ -1,6 +1,5 @@
-diff -up openchange-openchange-2.3-VULCAN/configure.ac.samba44 openchange-openchange-2.3-VULCAN/configure.ac
---- openchange-openchange-2.3-VULCAN/configure.ac.samba44	2016-02-09 11:51:31.089982153 +0100
-+++ openchange-openchange-2.3-VULCAN/configure.ac	2016-02-09 12:04:55.985948047 +0100
+--- openchange-openchange-2.3-VULCAN/configure.ac.orig	2021-03-26 18:49:09.587370999 +0100
++++ openchange-openchange-2.3-VULCAN/configure.ac	2021-03-26 18:50:40.332056045 +0100
 @@ -657,10 +657,11 @@ AC_CHECK_LIB([popt], [poptFreeContext],
  	       enable_libpopt="no"
               ])
@@ -16,7 +15,7 @@ diff -up openchange-openchange-2.3-VULCAN/configure.ac.samba44 openchange-opench
  	if test x"$enable_libocpf" = x"yes"; then
 @@ -692,7 +693,7 @@ OC_RULE_ADD(mapipropsdump, TOOLS)
  OC_RULE_ADD(exchange2ical, TOOLS)
- #OC_RULE_ADD(rpcextract, TOOLS)
+ OC_RULE_ADD(rpcextract, TOOLS)
  OC_RULE_ADD(openchangepfadmin, TOOLS)
 -OC_RULE_ADD(mapitest, TOOLS)
 +#OC_RULE_ADD(mapitest, TOOLS)
