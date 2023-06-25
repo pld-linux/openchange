@@ -49,8 +49,8 @@ BuildRequires:	nanomsg-devel >= 1.0.0
 BuildRequires:	perl-base
 BuildRequires:	pkgconfig >= 1:0.20
 BuildRequires:	popt-devel
-%if %{with python}
 BuildRequires:	python-devel >= 1:2.7
+%if %{with python}
 BuildRequires:	python-samba >= 4.2.2
 %endif
 BuildRequires:	rpm-build >= 4.6
