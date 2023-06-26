@@ -53,6 +53,7 @@ BuildRequires:	python-devel >= 1:2.7
 %if %{with python}
 BuildRequires:	python-samba >= 4.2.2
 %endif
+BuildRequires:	qt4-build >= 4.3.0
 BuildRequires:	rpm-build >= 4.6
 BuildRequires:	rpmbuild(macros) >= 1.752
 # with DCERCP multiplex and pending call support (upstream 4.1.18+ or 4.2.2+)
