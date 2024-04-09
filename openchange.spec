@@ -31,6 +31,7 @@ Patch9:		samba-4.11.patch
 Patch10:	samba-4.12.patch
 Patch11:	%{name}-nanomsg.patch
 Patch12:	samba-4.15.patch
+Patch13:	samba-4.20.patch
 URL:		https://github.com/openchange
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
@@ -229,6 +230,7 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %patch10 -p1
 %patch11 -p1
 %patch12 -p1
+%patch13 -p1
 
 # no switch for verbose mode, enable manually :/
 %{__sed} -i -e 's/^	@\(\$(\(PIDL\|CC\|CXX\|MOC\)\)/	\1/' Makefile
