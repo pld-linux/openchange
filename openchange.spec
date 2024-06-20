@@ -242,6 +242,7 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 # instead of calling automake (there is no Makefile.am)
 cp -f /usr/share/automake/{compile,missing} .
 %configure \
+	PYTHON=%{__python} \
 	--datadir=%{_datadir}/openchange \
 	--enable-openchange-qt4 \
 	%{?with_python:--enable-pyopenchange} \
