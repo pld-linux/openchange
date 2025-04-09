@@ -241,6 +241,8 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %{__autoheader}
 # instead of calling automake (there is no Makefile.am)
 cp -f /usr/share/automake/{compile,missing} .
+# accesses dcerpc_pipe.last_fault_code, which is in internal. now by default
+CFLAGS="%{rpmcflags} -DSOURCE4_LIBRPC_INTERNALS"
 %configure \
 	PYTHON=%{__python} \
 	PYTHON_CONFIG=/usr/bin/python2-config \
