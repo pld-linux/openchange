@@ -1,0 +1,929 @@
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical.h.orig
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical.h
+@@ -29,6 +29,43 @@
+ 
+ #include <libical/ical.h>
+ 
++/* libical 4.0 made icalrecurrencetype a refcounted heap object and replaced the
++   fixed, ICAL_RECURRENCE_ARRAY_MAX-terminated BY* arrays with separately
++   allocated, explicitly sized ones. th still ships 3.0.x while th-ready has
++   4.0.x, so every recurrence access goes through the helpers below. */
++enum oc_recur_by {
++	OC_BY_MONTH,
++	OC_BY_MONTH_DAY,
++	OC_BY_DAY,
++	OC_BY_SET_POS
++};
++
++#if ICAL_CHECK_VERSION(4, 0, 0)
++/* pointer in, pointer out */
++#define OC_RECUR_ARG(r)		(r)
++#define OC_RECUR_REF(v)		(&(v))
++#define OC_RECUR_VALUE(x)	(*(x))
++#define oc_property_clone(p)	icalproperty_clone(p)
++#define oc_time_add(t, d)	icalduration_extend((t), (d))
++#else
++/* libical 3.x passes and returns the recurrence by value */
++#define OC_RECUR_ARG(r)		(*(r))
++#define OC_RECUR_REF(v)		(v)
++#define OC_RECUR_VALUE(x)	(x)
++#define oc_property_clone(p)	icalproperty_new_clone(p)
++#define oc_time_add(t, d)	icaltime_add((t), (d))
++#endif
++
++struct icalrecurrencetype *oc_recur_new(void);
++void oc_recur_free(struct icalrecurrencetype *r);
++bool oc_recur_set_by(struct icalrecurrencetype *r, enum oc_recur_by by,
++		     const short *values, short count);
++short oc_recur_by_count(const struct icalrecurrencetype *r, enum oc_recur_by by);
++short oc_recur_by_value(const struct icalrecurrencetype *r, enum oc_recur_by by,
++			short idx);
++short oc_recur_encode_day(enum icalrecurrencetype_weekday weekday, int position);
++struct icaltriggertype oc_trigger_from_seconds(int seconds);
++
+ #include <time.h>
+ 
+ #ifndef __BEGIN_DECLS
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c.orig
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_utils.c
+@@ -203,6 +203,151 @@
+ 	return ICAL_CLASS_NONE;
+ }
+ 
++#if ICAL_CHECK_VERSION(4, 0, 0)
++static const icalrecurrencetype_byrule oc_byrule[] = {
++	[OC_BY_MONTH]		= ICAL_BY_MONTH,
++	[OC_BY_MONTH_DAY]	= ICAL_BY_MONTH_DAY,
++	[OC_BY_DAY]		= ICAL_BY_DAY,
++	[OC_BY_SET_POS]		= ICAL_BY_SET_POS
++};
++
++struct icalrecurrencetype *oc_recur_new(void)
++{
++	return icalrecurrencetype_new();
++}
++
++void oc_recur_free(struct icalrecurrencetype *r)
++{
++	icalrecurrencetype_unref(r);
++}
++
++bool oc_recur_set_by(struct icalrecurrencetype *r, enum oc_recur_by by,
++		     const short *values, short count)
++{
++	icalrecurrencetype_byrule rule = oc_byrule[by];
++	short i;
++
++	if (!icalrecur_resize_by(&r->by[rule], count)) {
++		return false;
++	}
++	for (i = 0; i < count; i++) {
++		r->by[rule].data[i] = values[i];
++	}
++	return true;
++}
++
++short oc_recur_by_count(const struct icalrecurrencetype *r, enum oc_recur_by by)
++{
++	return r->by[oc_byrule[by]].size;
++}
++
++short oc_recur_by_value(const struct icalrecurrencetype *r, enum oc_recur_by by,
++			short idx)
++{
++	return r->by[oc_byrule[by]].data[idx];
++}
++
++short oc_recur_encode_day(enum icalrecurrencetype_weekday weekday, int position)
++{
++	return icalrecurrencetype_encode_day(weekday, position);
++}
++
++struct icaltriggertype oc_trigger_from_seconds(int seconds)
++{
++	return icaltriggertype_from_seconds(seconds);
++}
++#else
++/* libical 3.x: fixed arrays terminated by ICAL_RECURRENCE_ARRAY_MAX */
++static short *oc_by_array(struct icalrecurrencetype *r, enum oc_recur_by by,
++			  short *limit)
++{
++	switch (by) {
++	case OC_BY_MONTH:
++		*limit = ICAL_BY_MONTH_SIZE;
++		return r->by_month;
++	case OC_BY_MONTH_DAY:
++		*limit = ICAL_BY_MONTHDAY_SIZE;
++		return r->by_month_day;
++	case OC_BY_DAY:
++		*limit = ICAL_BY_DAY_SIZE;
++		return r->by_day;
++	case OC_BY_SET_POS:
++		*limit = ICAL_BY_SETPOS_SIZE;
++		return r->by_set_pos;
++	}
++	*limit = 0;
++	return NULL;
++}
++
++struct icalrecurrencetype *oc_recur_new(void)
++{
++	struct icalrecurrencetype *r = malloc(sizeof(*r));
++
++	if (r) {
++		icalrecurrencetype_clear(r);
++	}
++	return r;
++}
++
++void oc_recur_free(struct icalrecurrencetype *r)
++{
++	free(r);
++}
++
++bool oc_recur_set_by(struct icalrecurrencetype *r, enum oc_recur_by by,
++		     const short *values, short count)
++{
++	short limit;
++	short *array = oc_by_array(r, by, &limit);
++	short i;
++
++	if (!array || count >= limit) {
++		return false;
++	}
++	for (i = 0; i < count; i++) {
++		array[i] = values[i];
++	}
++	array[count] = ICAL_RECURRENCE_ARRAY_MAX;
++	return true;
++}
++
++short oc_recur_by_count(const struct icalrecurrencetype *r, enum oc_recur_by by)
++{
++	short limit;
++	short *array = oc_by_array((struct icalrecurrencetype *) r, by, &limit);
++	short count = 0;
++
++	if (!array) {
++		return 0;
++	}
++	while (count < limit && array[count] != ICAL_RECURRENCE_ARRAY_MAX) {
++		count++;
++	}
++	return count;
++}
++
++short oc_recur_by_value(const struct icalrecurrencetype *r, enum oc_recur_by by,
++			short idx)
++{
++	short limit;
++	short *array = oc_by_array((struct icalrecurrencetype *) r, by, &limit);
++
++	return array ? array[idx] : 0;
++}
++
++short oc_recur_encode_day(enum icalrecurrencetype_weekday weekday, int position)
++{
++	/* "weekday:pos" encoding: weekday + occurrence*8, negated to count back */
++	return (short)(position < 0 ? -(weekday - position * 8)
++				    : weekday + position * 8);
++}
++
++struct icaltriggertype oc_trigger_from_seconds(int seconds)
++{
++	return icaltriggertype_from_int(seconds);
++}
++#endif
++
+ enum FirstDOW get_exchange_day_from_ical(enum icalrecurrencetype_weekday weekday)
+ {
+ 	
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_property.c.orig
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/exchange2ical_property.c
+@@ -638,301 +638,347 @@
+ 
+ void ical_property_RRULE_Daily(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_DAILY_RECURRENCE;
+-	recurrence.interval = (pat->Period / 1440);
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_DAILY_RECURRENCE;
++	recurrence->interval = (pat->Period / 1440);
+ 
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	}
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+ void ical_property_RRULE_Weekly(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 	uint32_t rdfDaysBitmask = pat->PatternTypeSpecific.WeekRecurrencePattern;
++	short by_day[7];
+ 	short idx = 0;
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_WEEKLY_RECURRENCE;
+-	recurrence.interval = pat->Period;
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_WEEKLY_RECURRENCE;
++	recurrence->interval = pat->Period;
+ 	
+ 	if(pat->Period > 1){
+ 		switch(pat->FirstDOW){
+ 			case FirstDOW_Sunday:
+-				recurrence.week_start=ICAL_SUNDAY_WEEKDAY;
++				recurrence->week_start=ICAL_SUNDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Monday:
+-				recurrence.week_start=ICAL_MONDAY_WEEKDAY;
++				recurrence->week_start=ICAL_MONDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Tuesday:
+-				recurrence.week_start=ICAL_TUESDAY_WEEKDAY;
++				recurrence->week_start=ICAL_TUESDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Wednesday:
+-				recurrence.week_start=ICAL_WEDNESDAY_WEEKDAY;
++				recurrence->week_start=ICAL_WEDNESDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Thursday:
+-				recurrence.week_start=ICAL_THURSDAY_WEEKDAY;
++				recurrence->week_start=ICAL_THURSDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Friday:
+-				recurrence.week_start=ICAL_FRIDAY_WEEKDAY;
++				recurrence->week_start=ICAL_FRIDAY_WEEKDAY;
+ 				break;
+ 			case FirstDOW_Saturday:
+-				recurrence.week_start=ICAL_SATURDAY_WEEKDAY;
++				recurrence->week_start=ICAL_SATURDAY_WEEKDAY;
+ 				break;
+ 		}
+ 	}
+ 	
+ 	if (rdfDaysBitmask & Su) {
+-		recurrence.by_day[idx] = ICAL_SUNDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_SUNDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & M) {
+-		recurrence.by_day[idx] = ICAL_MONDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_MONDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Tu) {
+-		recurrence.by_day[idx] = ICAL_TUESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_TUESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & W) {
+-		recurrence.by_day[idx] = ICAL_WEDNESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_WEDNESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Th) {
+-		recurrence.by_day[idx] = ICAL_THURSDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_THURSDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & F) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Sa) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+-	recurrence.by_day[idx] = ICAL_RECURRENCE_ARRAY_MAX;
++	if (!oc_recur_set_by(recurrence, OC_BY_DAY, by_day, idx)) {
++		oc_recur_free(recurrence);
++		return;
++	}
+ 
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	}
+ 
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+ void ical_property_RRULE_Monthly(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 	uint32_t day = pat->PatternTypeSpecific.Day;
++	short by_month_day[1];
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_MONTHLY_RECURRENCE;
+-	recurrence.interval = pat->Period;
+-
+-	if (day == 0x0000001F) {
+-		recurrence.by_month_day[0] = -1;
+-	} else {
+-		recurrence.by_month_day[0] = day;
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_MONTHLY_RECURRENCE;
++	recurrence->interval = pat->Period;
++
++	by_month_day[0] = (day == 0x0000001F) ? -1 : (short) day;
++	if (!oc_recur_set_by(recurrence, OC_BY_MONTH_DAY, by_month_day, 1)) {
++		oc_recur_free(recurrence);
++		return;
+ 	}
+-	recurrence.by_month_day[1] = ICAL_RECURRENCE_ARRAY_MAX;
+ 
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	}
+ 
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+ void ical_property_RRULE_NthMonthly(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 	uint32_t rdfDaysBitmask = pat->PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern;
++	short by_day[7];
+ 	short idx = 0;
+ 	enum RecurrenceN setpos = pat->PatternTypeSpecific.MonthRecurrencePattern.N;
++	short by_set_pos[1];
++	short setpos_count = 0;
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_MONTHLY_RECURRENCE;
+-	recurrence.interval = pat->Period;
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_MONTHLY_RECURRENCE;
++	recurrence->interval = pat->Period;
+ 
+ 	if (rdfDaysBitmask & Su) {
+-		recurrence.by_day[idx] = ICAL_SUNDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_SUNDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & M) {
+-		recurrence.by_day[idx] = ICAL_MONDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_MONDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Tu) {
+-		recurrence.by_day[idx] = ICAL_TUESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_TUESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & W) {
+-		recurrence.by_day[idx] = ICAL_WEDNESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_WEDNESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Th) {
+-		recurrence.by_day[idx] = ICAL_THURSDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_THURSDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & F) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Sa) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+-	recurrence.by_day[idx] = ICAL_RECURRENCE_ARRAY_MAX;
++	if (!oc_recur_set_by(recurrence, OC_BY_DAY, by_day, idx)) {
++		oc_recur_free(recurrence);
++		return;
++	}
+ 
+ 	if (setpos == RecurrenceN_First) {
+-		recurrence.by_set_pos[0] = 1;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 1;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Second) {
+-		recurrence.by_set_pos[0] = 2;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 2;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Third) {
+-		recurrence.by_set_pos[0] = 3;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 3;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Fourth) {
+-		recurrence.by_set_pos[0] = 4;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 4;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Last) {
+-		recurrence.by_set_pos[0] = -1;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = -1;
++		setpos_count = 1;
++	}
++	if (setpos_count &&
++	    !oc_recur_set_by(recurrence, OC_BY_SET_POS, by_set_pos, setpos_count)) {
++		oc_recur_free(recurrence);
++		return;
+ 	}
+ 
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	}
+ 
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+ void ical_property_RRULE_Yearly(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 	uint32_t day = pat->PatternTypeSpecific.Day;
++	short by_month_day[1];
+ 	struct icaltimetype icaltime;
++	short by_month[1];
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_YEARLY_RECURRENCE;
+-	recurrence.interval = (pat->Period / 12);
+-
+-	if (day == 0x0000001F) {
+-		recurrence.by_month_day[0] = -1;
+-	} else {
+-		recurrence.by_month_day[0] = day;
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_YEARLY_RECURRENCE;
++	recurrence->interval = (pat->Period / 12);
++
++	by_month_day[0] = (day == 0x0000001F) ? -1 : (short) day;
++	if (!oc_recur_set_by(recurrence, OC_BY_MONTH_DAY, by_month_day, 1)) {
++		oc_recur_free(recurrence);
++		return;
+ 	}
+-	recurrence.by_month_day[1] = ICAL_RECURRENCE_ARRAY_MAX;
+ 
+ 	icaltime = get_icaltime_from_FILETIME_UTC(exchange2ical->apptStartWhole);
+-	recurrence.by_month[0] = icaltime.month;
+-	recurrence.by_month[1] = ICAL_RECURRENCE_ARRAY_MAX;
++	by_month[0] = icaltime.month;
++	if (!oc_recur_set_by(recurrence, OC_BY_MONTH, by_month, 1)) {
++		oc_recur_free(recurrence);
++		return;
++	}
+ 
+ 
+ 	
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	} 
+ 	
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ void ical_property_RRULE_NthYearly(struct exchange2ical *exchange2ical)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
+ 	struct RecurrencePattern *pat = exchange2ical->RecurrencePattern;
+ 	uint32_t rdfDaysBitmask = pat->PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern;
++	short by_day[7];
+ 	short idx = 0;
+ 	enum RecurrenceN setpos = pat->PatternTypeSpecific.MonthRecurrencePattern.N;
++	short by_set_pos[1];
++	short setpos_count = 0;
+ 
+ 	struct icaltimetype icaltime;
++	short by_month[1];
+ 
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_YEARLY_RECURRENCE;
+-	recurrence.interval = (pat->Period / 12);
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_YEARLY_RECURRENCE;
++	recurrence->interval = (pat->Period / 12);
+ 
+ 	if (rdfDaysBitmask & Su) {
+-		recurrence.by_day[idx] = ICAL_SUNDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_SUNDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & M) {
+-		recurrence.by_day[idx] = ICAL_MONDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_MONDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Tu) {
+-		recurrence.by_day[idx] = ICAL_TUESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_TUESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & W) {
+-		recurrence.by_day[idx] = ICAL_WEDNESDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_WEDNESDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Th) {
+-		recurrence.by_day[idx] = ICAL_THURSDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_THURSDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & F) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+ 	if (rdfDaysBitmask & Sa) {
+-		recurrence.by_day[idx] = ICAL_FRIDAY_WEEKDAY;
++		by_day[idx] = oc_recur_encode_day(ICAL_FRIDAY_WEEKDAY, 0);
+ 		++idx;
+ 	}
+-	recurrence.by_day[idx] = ICAL_RECURRENCE_ARRAY_MAX;
++	if (!oc_recur_set_by(recurrence, OC_BY_DAY, by_day, idx)) {
++		oc_recur_free(recurrence);
++		return;
++	}
+ 
+ 	if (setpos == RecurrenceN_First) {
+-		recurrence.by_set_pos[0] = 1;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 1;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Second) {
+-		recurrence.by_set_pos[0] = 2;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 2;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Third) {
+-		recurrence.by_set_pos[0] = 3;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 3;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Fourth) {
+-		recurrence.by_set_pos[0] = 4;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = 4;
++		setpos_count = 1;
+ 	} else if (setpos == RecurrenceN_Last) {
+-		recurrence.by_set_pos[0] = -1;
+-		recurrence.by_set_pos[1] = ICAL_RECURRENCE_ARRAY_MAX;
++		by_set_pos[0] = -1;
++		setpos_count = 1;
++	}
++	if (setpos_count &&
++	    !oc_recur_set_by(recurrence, OC_BY_SET_POS, by_set_pos, setpos_count)) {
++		oc_recur_free(recurrence);
++		return;
+ 	}
+ 
+ 	icaltime = get_icaltime_from_FILETIME(exchange2ical->apptStartWhole);
+-	recurrence.by_month[0] = icaltime.month;
+-	recurrence.by_month[1] = ICAL_RECURRENCE_ARRAY_MAX;
++	by_month[0] = icaltime.month;
++	if (!oc_recur_set_by(recurrence, OC_BY_MONTH, by_month, 1)) {
++		oc_recur_free(recurrence);
++		return;
++	}
+ 	
+ 	if (pat->EndType == END_AFTER_N_OCCURRENCES || pat->EndType == END_AFTER_DATE) {
+-		recurrence.count = pat->OccurrenceCount;
++		recurrence->count = pat->OccurrenceCount;
+ 	}
+ 
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(exchange2ical->vevent, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+@@ -973,32 +1019,45 @@
+ 
+ void ical_property_RRULE_daylight_standard(icalcomponent* component , struct SYSTEMTIME st)
+ {
+-	struct icalrecurrencetype recurrence;
++	struct icalrecurrencetype *recurrence;
+ 	icalproperty *prop;
++	short by_day[1];
++	short by_month[1];
++	short by_month_day[1];
+ 	
+-	icalrecurrencetype_clear(&recurrence);
+-	recurrence.freq = ICAL_YEARLY_RECURRENCE;
++	recurrence = oc_recur_new();
++	if (!recurrence) return;
++	recurrence->freq = ICAL_YEARLY_RECURRENCE;
+ 
+ 	if(st.wYear ==0x0000){
+-		recurrence.by_month[0]=st.wMonth;
+ 		/* Microsoft day of week = libIcal day of week +1; */
+-		/* Day encode = day + occurrence*8 */
+-		if (st.wDay==5){
+-			/* Last occurrence of day in the month*/
+-			recurrence.by_day[0] = -1 * (st.wDayOfWeek + 9);
+-		}else{
+-			/* st.wDay occurrence of day in the month */
+-			recurrence.by_day[0] = (st.wDayOfWeek + 1 + st.wDay*8);
++		enum icalrecurrencetype_weekday weekday =
++			(enum icalrecurrencetype_weekday)(st.wDayOfWeek + 1);
++
++		by_month[0]=st.wMonth;
++		/* wDay 5 means the last occurrence of that day in the month */
++		by_day[0] = oc_recur_encode_day(weekday, (st.wDay==5) ? -1 : st.wDay);
++
++		if (!oc_recur_set_by(recurrence, OC_BY_MONTH, by_month, 1) ||
++		    !oc_recur_set_by(recurrence, OC_BY_DAY, by_day, 1)) {
++			oc_recur_free(recurrence);
++			return;
+ 		}
+-		
+ 	}else{
+-		recurrence.by_month_day[0]=st.wDay;
+-		recurrence.by_month[0]=st.wMonth;
++		by_month_day[0]=st.wDay;
++		by_month[0]=st.wMonth;
++
++		if (!oc_recur_set_by(recurrence, OC_BY_MONTH_DAY, by_month_day, 1) ||
++		    !oc_recur_set_by(recurrence, OC_BY_MONTH, by_month, 1)) {
++			oc_recur_free(recurrence);
++			return;
++		}
+ 	}
+ 
+ 	
+-	prop = icalproperty_new_rrule(recurrence);
++	prop = icalproperty_new_rrule(OC_RECUR_ARG(recurrence));
+ 	icalcomponent_add_property(component, prop);
++	oc_recur_free(recurrence);
+ }
+ 
+ 
+@@ -1121,11 +1180,11 @@
+ 	icalproperty *prop;
+ 	if (!exchange2ical->ReminderDelta) return;
+ 	if (*exchange2ical->ReminderDelta == 0x5AE980E1) {
+-		duration = icaltriggertype_from_int(-15 * 60);
++		duration = oc_trigger_from_seconds(-15 * 60);
+ 		prop = icalproperty_new_trigger(duration);
+ 		icalcomponent_add_property(exchange2ical->valarm, prop);
+ 	} else {
+-		duration = icaltriggertype_from_int(*(exchange2ical->ReminderDelta) * -1 * 60);
++		duration = oc_trigger_from_seconds(*(exchange2ical->ReminderDelta) * -1 * 60);
+ 		prop = icalproperty_new_trigger(duration);
+ 		icalcomponent_add_property(exchange2ical->valarm, prop);
+ 	}
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/ical2exchange.c.orig
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/ical2exchange.c
+@@ -36,21 +36,21 @@
+ 				if(!ical2exchange->attachEvent){
+ 					ical2exchange->attachEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				icalcomponent_add_property(ical2exchange->attachEvent, prop);
+ 				break;
+ 			case ICAL_ATTENDEE_PROPERTY:
+ 				if(!ical2exchange->attendeeEvent){
+ 					ical2exchange->attendeeEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				icalcomponent_add_property(ical2exchange->attendeeEvent, prop);
+ 				break;
+ 			case ICAL_CATEGORIES_PROPERTY:
+ 				if(!ical2exchange->categoriesEvent){
+ 					ical2exchange->categoriesEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				icalcomponent_add_property(ical2exchange->categoriesEvent, prop);
+ 				break;
+ 			case ICAL_CLASS_PROPERTY:
+@@ -63,7 +63,7 @@
+ 				if(!ical2exchange->contactEvent){
+ 					ical2exchange->contactEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				icalcomponent_add_property(ical2exchange->contactEvent, prop);
+ 				break;
+ 			case ICAL_CREATED_PROPERTY:
+@@ -87,7 +87,7 @@
+ 				if(!ical2exchange->exdateEvent){
+ 					ical2exchange->exdateEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				ical2exchange->exdateCount ++;
+ 				icalcomponent_add_property(ical2exchange->exdateEvent, prop);
+ 				break;
+@@ -107,7 +107,7 @@
+ 				if(!ical2exchange->rdateEvent){
+ 					ical2exchange->rdateEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				ical2exchange->rdateCount ++;
+ 				icalcomponent_add_property(ical2exchange->rdateEvent, prop);
+ 				break;
+@@ -118,7 +118,7 @@
+ 				if(!ical2exchange->resourcesEvent){
+ 					ical2exchange->resourcesEvent=icalcomponent_new_vevent();
+ 				}
+-				prop = icalproperty_new_clone(icalProp);
++				prop = oc_property_clone(icalProp);
+ 				icalcomponent_add_property(ical2exchange->resourcesEvent, prop);
+ 				break;
+ 			case ICAL_RRULE_PROPERTY:
+--- openchange-openchange-2.3-VULCAN/libexchange2ical/ical2exchange_property.c.orig
++++ openchange-openchange-2.3-VULCAN/libexchange2ical/ical2exchange_property.c
+@@ -479,6 +479,7 @@
+ 	enum CalendarType 		calendarType;
+ 	enum EndType 			endType;
+ 	enum icalrecurrencetype_weekday	weekday; 
++	int				setpos;
+ 	uint32_t 			startTime;
+ 	uint32_t 			endTime;
+ 	uint32_t 			occurrenceCount;
+@@ -489,7 +490,7 @@
+ 	if(!ical2exchange->rruleProp) return;
+ 	if(!ical2exchange->dtstartProp) return;
+ 	
+-	irt =  icalproperty_get_rrule(ical2exchange->rruleProp);
++	irt =  OC_RECUR_VALUE(icalproperty_get_rrule(ical2exchange->rruleProp));
+ 
+ 	/*StartTime*/
+ 	enum icalrecurrencetype_weekday icalrecurrencetype_day_day_of_week(short day);
+@@ -519,7 +520,7 @@
+ 		endType	= END_AFTER_N_OCCURRENCES;
+ 		occurrenceCount = irt.count;
+ 		
+-		ritr = icalrecur_iterator_new(irt,dtstart);
++		ritr = icalrecur_iterator_new(OC_RECUR_REF(irt),dtstart);
+ 		next=icalrecur_iterator_next(ritr);
+ 		last = icaltime_null_time();
+ 		
+@@ -567,25 +568,35 @@
+ 			rp.RecurFrequency 	= RecurFrequency_Monthly;
+ 			rp.Period		= irt.interval;
+ 			
+-			if(irt.by_day[0] == ICAL_RECURRENCE_ARRAY_MAX){
++			if(oc_recur_by_count(&irt, OC_BY_DAY) == 0){
+ 				rp.PatternType	= PatternType_Month;
+ 				
+-				if(irt.by_month_day[0] == -1){
++				if(oc_recur_by_count(&irt, OC_BY_MONTH_DAY) == 0){
++					/* no BYMONTHDAY: RFC 5545 takes the day from DTSTART */
++					rp.PatternTypeSpecific.Day = dtstart.day;
++				} else if(oc_recur_by_value(&irt, OC_BY_MONTH_DAY, 0) == -1){
+ 					rp.PatternTypeSpecific.Day = 0x0000001F;
+ 				} else {
+-					rp.PatternTypeSpecific.Day = irt.by_month_day[0];
++					rp.PatternTypeSpecific.Day = oc_recur_by_value(&irt, OC_BY_MONTH_DAY, 0);
+ 				}
+ 				
+ 			} else {
+ 				rp.PatternType	= PatternType_MonthNth;
+ 				i = 0;
+ 				rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern = 0;
+-				while( irt.by_day[i] != ICAL_RECURRENCE_ARRAY_MAX){
+-					rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern  |= get_exchange_rdfDays_from_ical(irt.by_day[i]);
++				while( i < (uint32_t) oc_recur_by_count(&irt, OC_BY_DAY)){
++					rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern  |= get_exchange_rdfDays_from_ical(icalrecurrencetype_day_day_of_week(oc_recur_by_value(&irt, OC_BY_DAY, i)));
+ 					i++;
+ 				}
+-				if(irt.by_set_pos[0] == -1) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_Last;
+-				else rp.PatternTypeSpecific.MonthRecurrencePattern.N = irt.by_set_pos[0];
++				if(oc_recur_by_count(&irt, OC_BY_SET_POS) > 0) {
++					setpos = oc_recur_by_value(&irt, OC_BY_SET_POS, 0);
++				} else {
++					/* BYSETPOS absent: the ordinal may sit on BYDAY itself (e.g. 2MO) */
++					setpos = icalrecurrencetype_day_position(oc_recur_by_value(&irt, OC_BY_DAY, 0));
++				}
++				if(setpos == -1) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_Last;
++				else if(setpos == 0) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_First;
++				else rp.PatternTypeSpecific.MonthRecurrencePattern.N = setpos;
+ 			}
+ 			break;
+ 		case ICAL_YEARLY_RECURRENCE:
+@@ -593,23 +604,33 @@
+ 			rp.Period		= 12 * irt.interval;
+ 			
+ 			/*Nth*/
+-			if(irt.by_day[0] == ICAL_RECURRENCE_ARRAY_MAX){
++			if(oc_recur_by_count(&irt, OC_BY_DAY) == 0){
+ 				rp.PatternType	= PatternType_Month;
+-				if(irt.by_month_day[0] == -1){
++				if(oc_recur_by_count(&irt, OC_BY_MONTH_DAY) == 0){
++					/* no BYMONTHDAY: RFC 5545 takes the day from DTSTART */
++					rp.PatternTypeSpecific.Day = dtstart.day;
++				} else if(oc_recur_by_value(&irt, OC_BY_MONTH_DAY, 0) == -1){
+ 					rp.PatternTypeSpecific.Day = 0x0000001F;
+ 				} else {
+-					rp.PatternTypeSpecific.Day = irt.by_month_day[0];
++					rp.PatternTypeSpecific.Day = oc_recur_by_value(&irt, OC_BY_MONTH_DAY, 0);
+ 				}
+ 			} else {
+ 				rp.PatternType	= PatternType_MonthNth;
+ 				i = 0;
+ 				rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern = 0;
+-				while( irt.by_day[i] != ICAL_RECURRENCE_ARRAY_MAX){
+-					rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern  |= get_exchange_rdfDays_from_ical(irt.by_day[i]);
++				while( i < (uint32_t) oc_recur_by_count(&irt, OC_BY_DAY)){
++					rp.PatternTypeSpecific.MonthRecurrencePattern.WeekRecurrencePattern  |= get_exchange_rdfDays_from_ical(icalrecurrencetype_day_day_of_week(oc_recur_by_value(&irt, OC_BY_DAY, i)));
+ 					i++;
+ 				}
+-				if(irt.by_set_pos[0] == -1) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_Last;
+-				else rp.PatternTypeSpecific.MonthRecurrencePattern.N = irt.by_set_pos[0];
++				if(oc_recur_by_count(&irt, OC_BY_SET_POS) > 0) {
++					setpos = oc_recur_by_value(&irt, OC_BY_SET_POS, 0);
++				} else {
++					/* BYSETPOS absent: the ordinal may sit on BYDAY itself (e.g. 2MO) */
++					setpos = icalrecurrencetype_day_position(oc_recur_by_value(&irt, OC_BY_DAY, 0));
++				}
++				if(setpos == -1) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_Last;
++				else if(setpos == 0) rp.PatternTypeSpecific.MonthRecurrencePattern.N = RecurrenceN_First;
++				else rp.PatternTypeSpecific.MonthRecurrencePattern.N = setpos;
+ 			}
+ 			break;
+ 		default:
+@@ -811,13 +832,13 @@
+ 		ical2exchange->lpProps = add_SPropValue(ical2exchange->mem_ctx, ical2exchange->lpProps, &ical2exchange->cValues, PidLidReminderTime, 
+ 						(const void *) rtimeft);
+ 			
+-		triggerSet = icaltime_add(dtstart, trigger.duration);
++		triggerSet = oc_time_add(dtstart, trigger.duration);
+ 		*rsignalft = get_FILETIME_from_icaltimetype(&triggerSet);
+ 		ical2exchange->lpProps = add_SPropValue(ical2exchange->mem_ctx, ical2exchange->lpProps, &ical2exchange->cValues, PidLidReminderSignalTime, 
+ 						(const void *) rsignalft);
+ 	} else if(ical2exchange->rruleProp) {
+-		irt =  icalproperty_get_rrule(ical2exchange->rruleProp);
+-		ritr = icalrecur_iterator_new(irt,dtstart);
++		irt =  OC_RECUR_VALUE(icalproperty_get_rrule(ical2exchange->rruleProp));
++		ritr = icalrecur_iterator_new(OC_RECUR_REF(irt),dtstart);
+ 		next = icalrecur_iterator_next(ritr);
+ 		
+ 		while (!icaltime_is_null_time(next)){
+@@ -829,7 +850,7 @@
+ 				ical2exchange->lpProps = add_SPropValue(ical2exchange->mem_ctx, ical2exchange->lpProps, &ical2exchange->cValues, PidLidReminderTime, 
+ 					(const void *) rtimeft);
+ 					
+-				triggerSet = icaltime_add(next, trigger.duration);
++				triggerSet = oc_time_add(next, trigger.duration);
+ 				*rsignalft = get_FILETIME_from_icaltimetype(&triggerSet);
+ 				ical2exchange->lpProps = add_SPropValue(ical2exchange->mem_ctx, ical2exchange->lpProps, &ical2exchange->cValues, PidLidReminderSignalTime, 
+ 					(const void *) &rsignalft);

@@ -12,7 +12,7 @@ Summary:	OpenChange - portable implementation of MS Exchange Server and Exchange
 Summary(pl.UTF-8):	OpenChange - przenośna implementacja serwera oraz protokołów MS Exchange
 Name:		openchange
 Version:	2.3
-Release:	97
+Release:	98
 License:	GPL v3+
 Group:		Libraries
 #Source0Download: https://github.com/openchange/openchange/releases
@@ -32,6 +32,7 @@ Patch10:	samba-4.12.patch
 Patch11:	%{name}-nanomsg.patch
 Patch12:	samba-4.15.patch
 Patch13:	samba-4.20.patch
+Patch14:	%{name}-libical4.patch
 URL:		https://github.com/openchange
 BuildRequires:	QtCore-devel >= 4.3.0
 BuildRequires:	QtGui-devel >= 4.3.0
@@ -231,6 +232,7 @@ Wtyczka Nagiosa do sprawdzania usług Exchange/OpenChange.
 %patch -P 11 -p1
 %patch -P 12 -p1
 %patch -P 13 -p1
+%patch -P 14 -p1
 
 # no switch for verbose mode, enable manually :/
 %{__sed} -i -e 's/^	@\(\$(\(PIDL\|CC\|CXX\|MOC\)\)/	\1/' Makefile
@@ -284,9 +286,11 @@ cp -a libqtmapi.so.*.* libqtmapi.so $RPM_BUILD_ROOT%{_libdir}
 
 /sbin/ldconfig -n $RPM_BUILD_ROOT%{_libdir}
 
+%if %{with python}
 %py_comp $RPM_BUILD_ROOT%{py_sitedir}
 %py_ocomp $RPM_BUILD_ROOT%{py_sitedir}
 %py_postclean
+%endif
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -445,4 +449,4 @@ rm -rf $RPM_BUILD_ROOT
 # FIXME: use /usr/lib/nagios/plugins dir and make package noarch
 %attr(755,root,root) %{_libdir}/nagios/check_exchange
 # default profile database - should be /etc/...
-#%config(noreplace) %verify(not md5 mtime size) %{_libdir}/nagios/plugins/check_exchange.ldb
+#%%config(noreplace) %%verify(not md5 mtime size) %%{_libdir}/nagios/plugins/check_exchange.ldb
